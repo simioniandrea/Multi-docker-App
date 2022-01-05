@@ -1,0 +1,79 @@
+version: '3'
+services:
+# DATABASE SERVICES USED IN EXPRESS WEB SERVER 
+#  FIRST, POSTGRESQL SERVICE IMAGE 
+  #name of the service for postgres
+  postgres:
+    image: 'postgres:latest'
+    environment:
+      - POSTGRES_PASSWORD=postgres_password
+  # SECOND, REDIS SERVICE IMAGE 
+  #name of the service for redis
+  redis:
+    image: 'redis:latest'
+  # THEN, THE SERVER CONFIG
+  #name of the service for server
+  nginx:
+    depends_on:
+      - api
+      - client
+    restart: always
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./nginx
+    ports:
+      - '3050:80'
+  api:
+  # BUILD DOCKERFILE + ( FACULTATIVE CONTEXT)
+    build:
+      dockerfile: Dockerfile.dev
+      # SPECIFY THE PATH OF THE DOCKERFILE THAT WILL BE BUILD WITH CONTEXT FIELD
+      # IN THIS CASE IS IN THE SERVER FOLDER
+      context: ./server
+    volumes:
+    # THIS MEANS : DON'T DARE OVERRIDE THIS FOLDER WHEN THERE IS ANY CHANGES, YOU DOCKER BITCH 
+    - /app/node_modules
+    # REMAIN IN LISTEN AND MAP THE CHANGES IN THE OTHER FILES INSTEAD
+    - ./server:/app
+    # environment variable setting (keys.js)
+    environment:
+        # the name of the service used for specify redis
+      - REDIS_HOST=redis
+        # check the docs in docker hub (start as redis instance)
+      - REDIS_PORT=6379
+      # postgres env setting ( check dockerhub for default setting)
+      - PGUSER=postgres 
+      - PGHOST=postgres
+      - PGDATABASE=postgres
+      - PGPASSWORD=postgres_password
+      - PGPORT=5432
+  # CLIENT CONFIGURATION
+  client:
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./client
+    volumes:
+    #same config as server
+    - /app/node_modules
+    - ./client:/app
+    stdin_open: true
+  # WORKER CONFIG
+  worker:
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./worker
+    volumes:
+    #same config as server
+    - /app/node_modules
+    - ./worker:/app
+    # ENV VARIABLES FOR REDIS CONNECTION
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
+
+
+
+    
+
+
